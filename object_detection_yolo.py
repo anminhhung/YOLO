@@ -17,10 +17,10 @@ inpWidth = 416  #608     #Width of network's input image
 inpHeight = 416 #608     #Height of network's input image
 
 parser = argparse.ArgumentParser(description='Object Detection using YOLO in OPENCV')
-parser.add_argument('--image', default="data/test.jpg", help='Path to image file.')
+parser.add_argument('--image', default="test.jpg", help='Path to image file.')
 parser.add_argument('--video', default="data/demo.mp4", help='Path to video file.')
-parser.add_argument('--model', default='weights/final_weight.weights', help='Path to model.weights file.')
-parser.add_argument('--modelcfg', default='config.cfg', help='Path to model config file.')
+parser.add_argument('--model', default='weights/yolov3_training_last.weights', help='Path to model.weights file.')
+parser.add_argument('--modelcfg', default='yolo.cfg', help='Path to model config file.')
 args = parser.parse_args()
         
 # Load names of classes

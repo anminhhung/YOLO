@@ -8,11 +8,11 @@ import numpy as np
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--image', required=True,
                 help='path to input image')
-ap.add_argument('-c', '--config', required=True,
+ap.add_argument('-c', '--config', default="yolo.cfg",
                 help='path to yolo config file')
-ap.add_argument('-w', '--weights', required=True,
+ap.add_argument('-w', '--weights', default='weights/yolov3_training_last.weights',
                 help='path to yolo pre-trained weights')
-ap.add_argument('-cl', '--classes', required=True,
+ap.add_argument('-cl', '--classes', default="obj.names",
                 help='path to text file containing class names')
 args = ap.parse_args()
 
@@ -24,11 +24,8 @@ def get_output_layers(net):
 
 def draw_prediction(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
     label = str(classes[class_id])
-
     color = COLORS[class_id]
-
     cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
-
     cv2.putText(img, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
 def detect(net,output_layers,image):
@@ -46,20 +43,23 @@ def detect(net,output_layers,image):
     boxes = []
     conf_threshold = 0.2
     nms_threshold = 0.1
-    # confidences_threshhold
 
     for out in outs:
+        print("out.shape : ", out.shape)
         for detection in out:
             scores = detection[5:]
             class_id = np.argmax(scores)
             confidence = scores[class_id]
+            if detection[4]>conf_threshold:
+                print(detection[4], " - ", scores[class_id], " - th : ", conf_threshold)
+                print(detection)
             if confidence > conf_threshold:
                 center_x = int(detection[0] * Width)
                 center_y = int(detection[1] * Height)
                 w = int(detection[2] * Width)
                 h = int(detection[3] * Height)
-                x = center_x - w / 2
-                y = center_y - h / 2
+                x = int(center_x - w / 2)
+                y = int(center_y - h / 2)
                 class_ids.append(class_id)
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
@@ -73,7 +73,7 @@ def detect(net,output_layers,image):
         y = box[1]
         w = box[2]
         h = box[3]
-        draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
+        draw_prediction(image, class_ids[i], confidences[i], x, y, x + w, y + h)
 
     return image
 
@@ -88,45 +88,9 @@ COLORS = np.random.uniform(0, 255, size=(len(classes), 3))
 net = cv2.dnn.readNet(args.weights, args.config)
 output_layers = get_output_layers(net)
 
-
-# Read from video file
 url_path = args.image
-cap = cv2.VideoCapture(url_path)
-# out = cv2.VideoWriter(path,fourcc, 20, (460,360))
 
-# define a box of Roid
-frame_number = 0
-car_counting = 0
-objectID = 0
-frame_number = 0
-frame = None
-prev_frame = None
-while (cap.isOpened()):
-    #start_time = time.time()
-    ret_val, frame = cap.read()
-    if frame is None:
-        break
-    if prev_frame is not None:
-        # --- take the absolute difference of the images ---
-        res = cv2.absdiff(frame, prev_frame)
-        # --- convert the result to integer type ---
-        res = res.astype(np.uint8)
-        # --- find percentage difference based on number of pixels that are not zero ---
-        percentage = (np.count_nonzero(res) * 100) / res.size
-
-        if (percentage>10):
-            frame = detect(net, output_layers, frame)
-    else:
-        frame = detect(net, output_layers, frame)
-
-    prev_frame = frame
-    frame_number = frame_number + 1
-
-    cv2.putText(frame, str(frame_number), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+image = cv2.imread(url_path)
+image = detect(net, output_layers, image)
+cv2.imshow("image", image)
+cv2.waitKey(0)
